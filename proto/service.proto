@@ -1,0 +1,120 @@
+// Copyright 2015, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+syntax = "proto3";
+
+package service;
+
+service Gateway {
+    rpc RouteMessage (stream Message) returns (stream Message) {
+    }
+}
+
+
+message Message {
+    int64 userID = 1;
+    int64 timestamp = 2;
+    oneof payload {
+        // request
+        ReqLogin req_login = 3;
+        ReqCreate req_create = 4;
+        ReqJoin req_join = 5;
+        ReqAction1 req_action1 = 6;
+        ReqQuit req_quit = 7;
+        ReqRoomList req_room_list = 8;
+
+        // response
+        ResLogin res_login = 9;
+        ResCreate res_create = 10;
+        ResJoin res_join = 11;
+        ResAction1 res_action1 = 12;
+        ResQuit res_quit = 13;
+        ResRoomList res_room_list = 14;
+
+        // notify
+        NotifyJoinMsg notify_join = 15;
+        NotifyAction1Msg notify_action1 = 16;
+        NotifyQuitMsg notify_quit = 17;
+
+        // error
+        ErrorMsg error = 1000;
+    }
+}
+
+// request payload
+message ReqLogin {
+}
+message ReqCreate {
+}
+message ReqJoin {
+    int64 roomID = 1;
+}
+message ReqAction1 {
+}
+message ReqQuit {
+}
+message ReqRoomList {
+}
+
+// response payload
+message ResLogin {
+    int32 result = 1;
+}
+message ResCreate {
+    int64 roomID = 1;
+}
+message ResJoin {
+    int64 roomID = 1;
+    repeated int64 members = 2;
+}
+message ResAction1 {
+    int32 result = 1;
+}
+message ResQuit {
+    int32 isSuccess = 1;
+}
+message ResRoomList {
+    repeated int64 roomIDs = 1;
+}
+
+// notify message type (for client)
+message NotifyJoinMsg {
+    int64 roomID = 1;
+}
+message NotifyAction1Msg {
+}
+message NotifyQuitMsg {
+    int64 roomID = 1;
+}
+
+// error message
+message ErrorMsg {
+    int32 errCode = 1; // pre-defined error code
+    string errMessage = 2; // custom error message
+}
