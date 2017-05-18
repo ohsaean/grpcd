@@ -7,7 +7,6 @@ import (
 	pb "github.com/ohsaean/grpcd/proto"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
 	"io"
 	"log"
 	"os"
@@ -19,13 +18,46 @@ var inputString string
 
 func main() {
 
-	var userID int64
 	var stream pb.Gateway_RouteMessageClient
-	var mw *walk.MainWindow
 
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:50051", opts...)
+	if err != nil {
+		log.Fatalf("fail to dial: %v", err)
+	}
+	defer conn.Close()
+	client := pb.NewGatewayClient(conn)
+
+	stream, err = client.RouteMessage(context.Background())
+	if err != nil {
+		log.Fatalf("%v.RouteMessage(_) = _, %v", client, err)
+	}
+
+	mw := createMainForm(stream)
+
+	go func() {
+		for {
+			log.Println("wait for read")
+			in, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				return
+			}
+			messageHandler(in)
+		}
+	}()
+
+	mw.Run()
+}
+
+func createMainForm(stream pb.Gateway_RouteMessageClient) (mw *walk.MainWindow) {
+	var userID int64
 	err := walk_dcl.MainWindow{
 		AssignTo: &mw,
-		Title:    "Walk LogView Example",
+		Title:    "Grpcd Client",
 		MinSize: walk_dcl.Size{
 			Width:  320,
 			Height: 240,
@@ -108,43 +140,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//logFile, err := os.OpenFile("log.txt", os.O_WRONLY, 0666)
 	log.SetOutput(lv)
 
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithInsecure())
-	conn, err := grpc.Dial("localhost:50051", opts...)
-	if err != nil {
-		grpclog.Fatalf("fail to dial: %v", err)
-	}
-	defer conn.Close()
-	client := pb.NewGatewayClient(conn)
-
-	stream, err = client.RouteMessage(context.Background())
-	if err != nil {
-		log.Fatalf("%v.RouteMessage(_) = _, %v", client, err)
-	}
-
-	waitc := make(chan struct{})
-	go func() {
-		for {
-			log.Println("wait for read")
-			in, err := stream.Recv()
-			if err == io.EOF {
-				close(waitc)
-				return
-			}
-			if err != nil {
-				return
-			}
-			log.Println("메시지 받음")
-			messageHandler(in)
-		}
-	}()
-
-	mw.Run()
-	<-waitc
-	stream.CloseSend()
+	return
 }
 
 // MessageHandler 여기서 각 proto message 에 대한 적절한 프로시저를 할당함

@@ -50,6 +50,10 @@ func (u *User) Leave() {
 
 	u.SendToAll(notifyMsg)
 
+	u.room.Leave(u.userID)
+
+	sessions.Remove(u.userID)
+
 	lib.Log("NotifyQuit message send")
 
 	lib.Log("Leave func end")

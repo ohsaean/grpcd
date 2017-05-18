@@ -1,1 +1,1 @@
-go build grpcd/client
+go build -ldflags="-H windowsgui" github.com/ohsaean/grpcd/client

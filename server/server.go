@@ -1,17 +1,17 @@
 package main
 
 import (
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 	"github.com/ohsaean/grpcd/lib"
 	pb "github.com/ohsaean/grpcd/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"io"
-	"log"
 	"net"
 )
 
 var (
-	rooms lib.SharedMap
+	rooms    lib.SharedMap
+	sessions lib.SharedMap
 )
 
 type server struct{}
@@ -56,13 +56,17 @@ func onClientRead(stream pb.Gateway_RouteMessageServer, user *User) {
 func (s *server) RouteMessage(stream pb.Gateway_RouteMessageServer) (err error) {
 
 	user := NewUser(0, nil) // empty user data
-
-	lib.Log("RouteMessage 호출됨")
 	go onClientRead(stream, user)
-
+	defer user.Leave()
 	// send loop 처리
 	for {
 		select {
+		case <-user.exit:
+			// when receive signal then finish the program
+
+			lib.Log("Leave user id :" + lib.Itoa64(user.userID))
+
+			return
 		case message := <-user.recv:
 			stream.Send(message)
 		}
@@ -76,19 +80,23 @@ const (
 
 func InitRooms() {
 	rooms = lib.NewSMap(lib.RWMutex)
+	sessions = lib.NewSMap(lib.RWMutex)
 }
 
 func main() {
+	lib.Log("server start!")
 	InitRooms()
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		lib.Logf("failed to listen: %v", err)
+		return
 	}
 	s := grpc.NewServer()
 	pb.RegisterGatewayServer(s, &server{})
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		lib.Logf("failed to serve: %v", err)
+		return
 	}
 }

@@ -16,6 +16,12 @@ func loginHandler(in *pb.Message, user *User) {
 	user.userID = in.UserID
 
 	// TODO validation logic here
+	if _, ok := sessions.Get(user.userID); ok {
+		lib.Log("Fail, already login")
+		return
+	}
+
+	sessions.Set(user.userID, user)
 
 	res := NewRootMessage(user.userID)
 	res.Payload = &pb.Message_ResLogin{

@@ -1,1 +1,1 @@
-go build grpcd/server
+go build github.com/ohsaean/grpcd/server
